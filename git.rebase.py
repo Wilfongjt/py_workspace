@@ -1,34 +1,42 @@
 import os
 import subprocess
+import webbrowser
 from _functions import prompt, get_env_value, verify,createFolder,\
                 hasRemoteProject,isCloned,getCurrentBranch
-from dev_env import DevEnv
+from __dev_env import DevEnv
 from _functions import prompt, get_env_value, verify,\
                 hasRemoteProject, isCloned, getCurrentBranch, folder_exists,\
-                getDevelopment,getOrganization,getWorkspace,getProject
+                getDevelopment,getOrganization,getWorkspace,getProject, getBranch
 
 def getParameterPrompts():
     return {
-        'WS_ORGANIZATION': prompt('WS_ORGANIZATION', get_env_value('WS_ORGANIZATION')),
-        'WS_WORKSPACE': prompt('WS_WORKSPACE', get_env_value('WS_WORKSPACE')),
+        'WS_ORGANIZATION': prompt('WS_ORGANIZATION', getOrganization()),
+        'WS_WORKSPACE': prompt('WS_WORKSPACE', getWorkspace()),
         'GH_USER': prompt('GH_USER', get_env_value('GH_USER')),
-        'GH_PROJECT': prompt('GH_PROJECT',get_env_value('GH_PROJECT')),
-        'GH_BRANCH': prompt('GH_BRANCH', get_env_value('GH_BRANCH')),
+        'GH_PROJECT': prompt('GH_PROJECT',getProject()),
+        'GH_BRANCH': prompt('GH_BRANCH', getBranch()),
         'GH_MESSAGE': prompt('GH_MESSAGE', get_env_value('GH_MESSAGE'))
     }
 
 def main():
-    devEnv = DevEnv().open() # needed for prompts
+    #devEnv = DevEnv().open().show() # needed for prompts
 
-    devfolder = os.path.expanduser('~')
+    devfolder = '{}/Development'.format(os.path.expanduser('~'))
+    print('Development', getDevelopment())
+    print('Organization', getOrganization())
+    print('Workspace', getWorkspace())
+    print('Project', getProject())
+    print('Branch', getBranch())
+    #
+    # only run from the <gh_project>scripts folder
+    #
+    print('cwd', os.getcwd())
+    if not os.getcwd().endswith('scripts'):
+        print('Stopping... Not a project/repo scripts folder.')
+        exit(0)
+
     # WS_ prefix indicates a path part eg ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>
-    #prompts = {
-    #    'WS_ORGANIZATION': prompt('WS_ORGANIZATION', get_env_value('WS_ORGANIZATION')),
-    #    'WS_WORKSPACE': prompt('WS_WORKSPACE', get_env_value('WS_WORKSPACE')),
-    #    'GH_USER': prompt('GH_USER', get_env_value('GH_USER')),
-    #    'GH_PROJECT': prompt('GH_PROJECT',get_env_value('GH_PROJECT')),
-    #    'GH_BRANCH': prompt('GH_BRANCH', get_env_value('GH_BRANCH')),
-    #}
+    print('folder', devfolder)
     prompts = getParameterPrompts()
 
     #
@@ -49,10 +57,11 @@ def main():
     print('Organization', getOrganization())
     print('Workspace', getWorkspace())
     print('Project', getProject())
+    #exit(0)
     #
-    # confirm development folder
-    #     ~/Development
-    folder = os.getcwd().replace('/_scripts', '')
+    # Stop when ~/Development NF
+    #
+    folder = devfolder
     print('* checking folder {} '.format(folder), end='')
     if not folder_exists(folder):
         print('stopping...development not found')
@@ -63,9 +72,8 @@ def main():
     #
     os.chdir(folder)
     #
-    # confirm organization folder
-    #     ~/Development/<WS_ORGANIZATION>
-    # folder = '{}/{}'.format(os.getcwd().replace('/_scripts', '/{}'.format(prompts['WS_ORGANIZATION'])))
+    # Stop when ~/Development/<WS_ORGANIZATION> NF
+    #
     folder = '{}/{}'.format(folder,prompts['WS_ORGANIZATION'])
     print('* checking folder {} '.format(folder), end='')
     if not folder_exists(folder):
@@ -77,18 +85,18 @@ def main():
     #
     os.chdir(folder)
     #
-    # confirm workspace folder
-    #     ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>
-    folder = '{}/{}'.format(os.getcwd().replace('/_scripts','/{}'.format(prompts['WS_ORGANIZATION'])), prompts['WS_WORKSPACE'])
+    # Stop when ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE> NF
+    #
+    folder = '{}/{}'.format(folder,prompts['WS_WORKSPACE'])
     print('* checking folder {} '.format(folder), end='')
     if not folder_exists(folder):
         print('stopping...workspace not found')
         exit(0)
     print('ok')
     #
-    # confirm project folder
-    #     ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>/<GH_PROJECT>
-    folder = '{}/{}/{}'.format(os.getcwd().replace('/_scripts','/{}'.format(prompts['WS_ORGANIZATION'])), prompts['WS_WORKSPACE'],prompts['GH_PROJECT'])
+    # Stop when ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>/<GH_PROJECT> NF
+    #
+    folder = '{}/{}'.format(folder,prompts['GH_PROJECT'])
     print('* checking folder {} '.format(folder), end='')
     if not folder_exists(folder):
         print('stopping...project/repo not found')
@@ -111,6 +119,16 @@ def main():
     #
     os.chdir(folder)
     print('* Switch to ', folder)
+
+    #
+    # Fail when branch is TBD or main
+    #
+    if getBranch() == 'TBD':
+        print('stopping...Bad branch')
+        exit(0)
+    if getBranch() == 'main':
+        print('stopping...Cannot use "main" branch')
+        exit(0)
     #
     # confirm branch
     #
@@ -118,9 +136,13 @@ def main():
         print('stopping... commit to "main" branch not allowed!')
         exit(0)
 
-    if getCurrentBranch(folder) != prompts['GH_BRANCH']:
+    if getCurrentBranch(folder) == 'TBD':
         print('stopping... branch not found {} how about {}'.format(prompts['GH_BRANCH'], getCurrentBranch(folder)))
         exit(0)
+
+    #if getCurrentBranch(folder) != prompts['GH_BRANCH']:
+    #    print('stopping... branch not found {} how about {}'.format(prompts['GH_BRANCH'], getCurrentBranch(folder)))
+    #    exit(0)
 
     print('* current branch', getCurrentBranch(folder))
 
@@ -148,15 +170,23 @@ def main():
         command = 'git push origin {}'.format(prompts['GH_BRANCH'])
         os.system(command)
 
-    print('* update environment')
-    devEnv.upsert(prompts)
-    print('* save .env')
-    devEnv.save()
+    #print('* update environment')
+    #devEnv.upsert(prompts)
+    #print('* save .env')
+    #devEnv.save()
 
     print('open browser')
-    command = 'open -a safari "https://github.com/{}/{}"'.format(prompts['GH_USER'], prompts['GH_PROJECT'])
-    os.system(command)
+    #command = 'open -a safari "https://github.com/{}/{}"'.format(prompts['GH_USER'], prompts['GH_PROJECT'])
+    #os.system(command)
+    url = "https://github.com/{}/{}".format(prompts['GH_USER'], prompts['GH_PROJECT'])
+    #command =['open', '-a', 'safari', url]
+    #subprocess.Popen(command)
+
     os.system('git status')
+    print('done')
+
+    # the webbrowser blocks the funtioning of the command window while the browser is open
+    webbrowser.get('safari').open(url, new=2)
 
 if __name__ == "__main__":
     # execute as script

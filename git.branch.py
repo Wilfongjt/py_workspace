@@ -2,7 +2,9 @@ import os
 import subprocess
 from _functions import prompt, get_env_value, verify,createFolder,\
                 hasRemoteProject,isCloned,getCurrentBranch, folder_exists
-from _dev_env import DevEnv
+from __dev_env import DevEnv
+from __text_file_helper import TextFileHelper
+
 def getParameterPrompts():
     return {
         'WS_ORGANIZATION': prompt('WS_ORGANIZATION', get_env_value('WS_ORGANIZATION')),
@@ -12,15 +14,17 @@ def getParameterPrompts():
         'GH_BRANCH': prompt('GH_BRANCH', get_env_value('GH_BRANCH')),
     }
 
-
 def main():
-    devEnv = DevEnv().open()
-    devfolder = os.path.expanduser('~')
-    #print(getFolderNameList(devfolder))
+    # Create environment file When NF
+    # Open enviroment file When found in current folder
 
-    # WS_ prefix indicates a path part eg ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>
+    print('starting folder', os.getcwd())
+    devEnv = DevEnv().open()
+    devfolder = '{}/Development'.format(os.path.expanduser('~'))
+    srcFolder = '{}/Development/_tools'.format(os.path.expanduser('~'))
+
     #
-    # Get Parameters from Usert
+    # Get Parameterxs from Usert
     #
     prompts = getParameterPrompts()
     #
@@ -40,13 +44,15 @@ def main():
         exit(0)
 
     #
-    # check for workspace folder
-    # ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>
-    folder = '{}/{}'.format(os.getcwd().replace('/_scripts','/{}'.format(prompts['WS_ORGANIZATION'])), prompts['WS_WORKSPACE'])
+    # check for WS_WORKSPACE folder ~/Development/<WS_ORGANIZATION>/<WS_WORKSPACE>
+    #
+    folder = '{}/{}/{}'.format(devfolder, prompts['WS_ORGANIZATION'], prompts['WS_WORKSPACE'])
     print('* check for workspace folder {} '.format(folder))
 
+    # wsEnv = DevEnv(folder=folder, filename='{}.env'.format(prompts['GH_PROJECT'])).open()
+
     #
-    # check for project repo
+    # check for GH_PROJECT repo https://github.com/<GH_USER>/<GH_PROJECT>.git
     #
     url = 'https://github.com/{}/{}.git'.format(prompts['GH_USER'], prompts['GH_PROJECT'])
     print('* checking for project repo', url)
@@ -57,11 +63,18 @@ def main():
         print('Stop...Repo doenst exist')
         exit(0)
 
-
     createFolder(folder)
+
+    #
+    # Change environment to match prompts
+    #
+    devEnv.upsert(prompts)
+    print('* save .env')
+    devEnv.save()
     #
     # Switch to workspace folder
     #
+    print('* switch to workspace ', folder)
     os.chdir(folder)
 
     #
@@ -73,12 +86,13 @@ def main():
         print('* cloning...', end='')
         command = 'git clone {}'.format(url)
         os.system(command)
-
+    else:
+        print('* skipping...clone. "{}" is already cloned.'.format(prompts['GH_PROJECT']))
     #
-    # Switch to repo folder
+    # Switch to project/repo folder
     #
     os.chdir(folder)
-    print('* switch to ', folder)
+    print('* switch to project/repo', folder)
     #
     # CHECKOUT branch
     #
@@ -88,12 +102,30 @@ def main():
         print('* command', command, end='')
         os.system(command)
         #print('')
+    else:
+        print('* skipping...checkout. "{}" is already checked out.'.format(prompts['GH_BRANCH']))
+
+    #
+    # create project/repo script folder
+    #
+    scriptsfolder = '{}/scripts'.format(folder)
+    print('* create repo/script folder')
+    createFolder(scriptsfolder)
+    #
+    # copy rebase.sh to repo/scripts
+    #
+    TextFileHelper(srcFolder, 'git.rebase.sh').copyTo(scriptsfolder,'git.rebase.sh')
 
     print('\n* confirm current branch', getCurrentBranch(folder))
     print('* update environment')
-    devEnv.upsert(prompts)
-    print('* save .env')
-    devEnv.save()
+
+    #
+    # Save environment to project/repo
+    #
+    #wsEnv = DevEnv(folder=scriptsfolder, filename='{}.env'.format(prompts['GH_PROJECT'])).open().save()
+    wsEnv = DevEnv(folder=scriptsfolder, filename='git.rebase.env').open().save()
+
+
 
 if __name__ == "__main__":
     # execute as script

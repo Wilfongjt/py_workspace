@@ -1,16 +1,23 @@
 import os
 from pprint import pprint
 
-class DevEnv(dict):
+class DevEnv():
     # load from file .env
-    #
 
     def __init__(self, folder=os.getcwd(),filename='.env'):
         # by default: put .env in calling folder
         self.folder = folder
         self.filename = filename
         self.prefixList = ['GH_','WS_']
-        #self.initialize()
+        if not self.exists():
+            self.save()
+    def show(self):
+        print('DevEnv:')
+        print('* folder : ', self.folder)
+        print('* file   : ', self.filename)
+        print('* values : ', self.collect())
+        #print('* environment: ', os.environ)
+        return self
 
     def upsert(self, values):
         # values is a dict
@@ -29,35 +36,25 @@ class DevEnv(dict):
             'GH_PROJECT': 'TBD',
             'GH_BRANCH': 'TBD'
         }
-        # merge any values from the environment an previous runs
-        for e in dflts:
-            if e in os.environ:
-                dflts[e] = os.environ[e]
-
         return dflts
 
-    def file_exists(self):
-        exists = os.path.isfile('{}/{}'.format(self.folder, self.filename))
-        return exists
+    def exists(self):
+        return os.path.isfile('{}/{}'.format(self.folder, self.filename))
 
     def open(self):
-        #self.folder = folder
-        #self.filename = filename
-        if not self.file_exists():
-            self.save()
+        # .env -> environment
 
         with open('{}/{}'.format(self.folder,self.filename)) as file:
             lines = file.readlines()
             for ln in lines:
                 if not ln.startswith('#'):
                     ln = ln.split('=')
-
+                    # put into environment
                     if len(ln) == 2:
                         os.environ[ln[0]] = ln[1].strip('\n')
 
         return self
 
-    #def save(self, initialization_values=None):
     def save(self):
 
         #print('saving')
@@ -68,10 +65,6 @@ class DevEnv(dict):
         # convert json to lines
         # write lines to .env file
         # return self
-        #if initialization_values:
-        #    env = initialization_values # collect defaults merged with enviroment
-        #else:
-        #    env = self.collect() # just the environment
 
         env = self.collect()  # get current env-vars or defaults
         # should have all the file values at this point
@@ -90,23 +83,34 @@ class DevEnv(dict):
         return self
 
     def collect(self):
+        # Collect environment variables when var-name starts with prefixList
+        # Collect default variables when environment variables not found
         cllct = {}
+        #cllct = self.getDefaults()
+        # update from memory
         for e in os.environ:
             for p in self.prefixList:
                 #print('e', e, 'p',p)
                 if e.startswith(p):
                     cllct[e] = os.environ[e]
-        if not cllct:
-            cllct = self.getDefaults()
+        #if not cllct:
+        #    cllct = self.getDefaults()
         return cllct
 
 def main():
+    srcFolder = os.getcwd()
+    print('srcFolder')
+    dstFolder = '{}/temp'.format(srcFolder)
+    actual = DevEnv(dstFolder,'.env')
+    assert ( actual)
+    assert ( actual.exists())
+    assert ( actual.collect() == {})
 
-    print('DevEnv', DevEnv())
-    assert (DevEnv() == {})
+    #print('A actual.collect ', actual.collect())
+    assert ( actual.open())
+    assert ( actual.collect() != {})
 
-    print('DevEnv.open', DevEnv().open().save())
-    print('DevEnv.open.collect', DevEnv().open().collect())
+    #print('B actual.collect ', actual.collect())
 
 
 if __name__ == "__main__":
