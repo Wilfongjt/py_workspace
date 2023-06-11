@@ -173,6 +173,29 @@ def getProject():
     #print('prj', '/'.join(rc))
     return rc[idx+pos-1]
 
+def getBranch():
+    # get the project folder
+    pos = 4
+    rc = getCurrentDirectory().split('/')
+    idx = rc.index('Development') #os.getcwd().split('/').index('Development')
+
+    # pad with TBD
+    while idx + pos > len(rc):
+        rc.append('TBD')
+
+    rc = rc[0:idx+pos]
+    #print('getBranch', rc)
+
+    head_dir = Path('/'.join(rc)) / ".git" / "HEAD"
+
+    with head_dir.open("r") as f:
+        content = f.read().splitlines()
+
+    for line in content:
+        if line[0:4] == "ref:":
+            return line.partition("refs/heads/")[2]
+    return ""
+
 def getFileList(path, ext=None):
     onlyfiles=[]
 
@@ -184,39 +207,20 @@ def getFileList(path, ext=None):
     #return onlyfiles
     return [fn for fn in onlyfiles if '.DS_Store' not in fn]
 
-class TextFileHelper(list):
-    def __init__(self, srcFolder, srcName):
-        self.folder = srcFolder
-        self.filename = srcName
-
-    def exists(self):
-        if file_exists(self.folder, self.filename):
-            return True
-        return False
-    def deleteWhenFound(self, folder, file_name):
-        # delete when exists
-        if file_exists(folder, file_name):
-            os.remove("{}/{}".format(folder, file_name))
-        return self
-    def copyTo(self, dstfolder, dstfilename):
-        # copy source file when source file exists
-        # remove destination file when destination file exists
-        #
-        if file_exists(self.folder, self.filename):
-            self.deleteWhenFound(dstfolder, dstfilename)
-            shutil.copy2('{}/{}'.format(self.folder,self.filename),
-                         '{}/{}'.format(dstfolder,dstfilename))
-        return self
-
-
 
 def main():
     #assert (prompt('hix','bye') == 'bye')
-    print('getFolderNameList', getFolderNameList(os.getcwd()))
-    print('getDevelopment   ',getDevelopment())
-    print('getOrganization  ',getOrganization())
-    print('getWorkspace     ',getWorkspace())
-    print('getProject       ',getProject())
+    #print('getFolderNameList', getFolderNameList(os.getcwd()))
+    #print('getDevelopment   ',getDevelopment())
+    #print('getOrganization  ',getOrganization())
+    #print('getWorkspace     ',getWorkspace())
+    #print('getProject       ',getProject())
+    #print('getBranch', getBranch())
+
+    assert ( getDevelopment() == 'Development')
+    assert ( getOrganization() == 'lyttlebit')
+    assert ( getWorkspace() == '00_tools')
+    assert ( getProject() == 'py_workspace')
 
 if __name__ == "__main__":
     # execute as script
