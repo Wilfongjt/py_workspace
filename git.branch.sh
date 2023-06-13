@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 git.branch.py
+python3 ./lib/git.branch.py
