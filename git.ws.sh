@@ -2,4 +2,4 @@
 set -o allexport
 source .env set
 set +o allexport
-python3 ../../../../_tools/lib/git.rebase.py
+python3 ./lib/git.branch.py
