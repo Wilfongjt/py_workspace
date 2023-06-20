@@ -1,107 +1,97 @@
-import settings
-
+from lib.doc_comments import DocComments
 import os
 from lib._functions import createFolder, getFileList
 from lib.__text_file_helper import TextFileHelper
-#class Installer():
-#    def __init__(self):
-#        self.dstFolder=
-#        self.srcFolder=
-#        # fail when _function.py found in ~/Development/_scripts
-#        self.srcFolder = os.getcwd()
-#        print('srcFolder')
-#        self.dstFolder = '{}/Development/_tools'.format(os.path.expanduser('~'))
-#def file_exists(folder, filename):
-#    exists = os.path.isfile('{}/{}'.format(folder, filename))
-#    return exists
+from lib.__dev_env import DevEnv
+from lib.doc_folders import DocFolders
 
+print(DocComments(os.getcwd(), 'install.py').toMarkdown())
+
+#
+### Install Process
+#
 def main():
-
-    # fail when _function.py found in ~/Development/_scripts
-    # create folders when folders NF
-    # copy when
+    ## To use the tools, you must install them on your computer.
+    ## 1. Clone py_workspace
+    ##      * Navigate to the py_workspace clone folder
+    ##      * From the command line: python3 install.py
+    ##      * Install.py does the following:
+    env_file = '.env'
     srcFolder = os.getcwd()
-    srcLibFolder = '{}/lib'.format(srcFolder)
-    srcScrptFolder = '{}/scripts'.format(srcFolder)
-    print('srcFolder')
-    #   + <USER>
-    #       + Development
-    #           + _tools
-    #               + lib
-
     dstFolder = '{}/Development/_tools'.format(os.path.expanduser('~'))
     dstLibFolder = '{}/lib'.format(dstFolder)
     dstScrptFolder = '{}/scripts'.format(dstFolder)
 
-    # create folder when NF
-    print('* install _tools at', dstFolder)
-    print('* install python library at', dstLibFolder)
-    print('* install python scripts at', dstScrptFolder)
-
-    createFolder(dstLibFolder)
+    ##1. Initialize Application Folders
+    ##      * Create tools folder when folder is not found, eg ~/<USER>/Development/_tools
+    ##      * Create bash script folder when folder is not found, eg ~/<USER>/Development/_tools/scripts
     createFolder(dstScrptFolder)
     #
-    # lib
-    # /Development/lyttlebit/00_tools/py_workspace/lib
+    ##      * Create python library folder when folder is not found, eg ~/<USER>/Development/_tools/lib
+    #
+    createFolder(dstLibFolder)
+    ##1. Initialize Environment
+    #
+    ##      * Create .env file when environment file is not found, ~/<USER>/Development/_tools/.env
+    #
+    src_folder = srcFolder
+    dst_folder = dstFolder
+    DevEnv(folder=dst_folder, filename=env_file).open()
+    file_env = '        - {}'.format(env_file)
 
-    src_folder = '{}/lib'.format(srcFolder)
-    dst_folder = '{}/lib'.format(dstFolder)
-    fileNames = getFileList(src_folder, ext='py')
+    #
+    ##1. Install Bash Scripts
+    #
+    ##      * Copy Tool Scripts to when "_tools/" exists
+    #
+    src_folder = srcFolder
+    dst_folder = dstFolder
+    fileNames = getFileList(src_folder, ext='sh') # list of .sh files
+    tool_sh = ''
     for fn in fileNames:
         srcFn = fn
         dstFn = fn
-        print('* copy {} to {}'.format(srcFn, dstFn))
+        tool_sh += '        - {}\n'.format(fn)
 
         TextFileHelper(src_folder, srcFn) \
             .copyTo(dst_folder, dstFn)
     #
-    # scripts
-    # /Development/lyttlebit/00_tools/py_workspace/scripts
-
+    ##      * Copy Project Scripts when "_tool/scripts" exists
+    #
     src_folder = '{}/scripts'.format(srcFolder)
     dst_folder = '{}/scripts'.format(dstFolder)
     fileNames = getFileList(src_folder, ext='sh')
+    script_sh = ''
     for fn in fileNames:
         srcFn = fn
         dstFn = fn
-        print('* copy {} to {}'.format(srcFn, dstFn))
+        script_sh += '          - {}\n'.format(fn)
 
         TextFileHelper(src_folder, srcFn) \
             .copyTo(dst_folder, dstFn)
     #
-    # scripts
-    # /Development/lyttlebit/00_tools/py_workspace
-    src_folder = srcFolder
-    dst_folder = dstFolder
-    fileNames = getFileList(src_folder, ext='sh')
+    ##1. Install Python Scripts
+    #
+    #
+    ##      * Copy Python lib Scripts when "_tools/lib" folder exists
+    #
+    src_folder = '{}/lib'.format(srcFolder)
+    dst_folder = '{}/lib'.format(dstFolder)
+    fileNames = getFileList(src_folder, ext='py')
+    lib_py=''
     for fn in fileNames:
         srcFn = fn
         dstFn = fn
-        print('* copy {} to {}'.format(srcFn, dstFn))
+
+        lib_py += '          - {}\n'.format(fn)
+        #print('* copy {} to _tools/lib/{}'.format(srcFn, dstFn))
 
         TextFileHelper(src_folder, srcFn) \
             .copyTo(dst_folder, dstFn)
 
-    exit(0)
-    # copy *.py to ~/Developement/_tools/lib
-    # copy *.sh to ~/Developement/_tools
-    '''
-    exts = ['py','sh']
-    for ext in exts:
-        pythonFileNames = getFileList(srcFolder, ext=ext)
-        for pfn in pythonFileNames:
-            srcFile = pfn
-            dstFile = pfn
-            src = '{}/{}'.format(srcFolder, srcFile)
-            dst = '{}/{}'.format(dstFolder, dstFile)
-            if pfn != 'install.py':
-                print('* copy {} to {}'.format(src,dst))
-                TextFileHelper(srcFolder, srcFile)\
-                        .copyTo(dstFolder, dstFile)
-                if dstFile.endswith('.sh'):
-                    command = 'chmod 777 {}/{}'.format(dstFolder,dstFile)
-                    os.system(command)
-    '''
+
+    print(DocFolders(dstFolder, title='Installation').toMarkdown())
+    print('dstFolder',dstFolder)
 if __name__ == "__main__":
     # execute as script
     main()
